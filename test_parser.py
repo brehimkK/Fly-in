@@ -2,7 +2,7 @@ from parser import MapParser
 
 def test_easy_map():
     # 1. Initialize the parser with the easy map
-    parser = MapParser("maps/easy/01_linear_path.txt")
+    parser = MapParser("maps/hard/03_ultimate_challenge.txt")
     
     # 2. Parse the file into the SimulationMap object
     my_map = parser.parse()

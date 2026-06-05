@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 
 class Zone:
     """
@@ -25,6 +25,13 @@ class Zone:
         self.max_drones: int = max_drones
         self.is_start: bool = is_start
         self.is_end: bool = is_end
+    
+    def __lt__(self, other: "Zone") -> bool:
+        """
+        Allows Python's heapq to compare two Zones to break ties.
+        Compares them alphabetically by their unique name.
+        """
+        return self.name < other.name
 
 
 class Connection:
@@ -59,3 +66,29 @@ class SimulationMap:
         self.connections: List[Connection] = []
         self.start_zone: Optional[Zone] = None
         self.end_zone: Optional[Zone] = None
+
+
+class Drone:
+    """
+    Represents a single drone navigating the network.
+    
+    Attributes:
+        drone_id (int): The unique numerical identifier for the drone.
+        current_location (Union[Zone, Connection]): The zone or connection the drone currently occupies.
+        is_arrived (bool): True if the drone has successfully reached the end_hub.
+        path (List[Zone]): The planned sequence of zones the drone intends to travel through.
+        transit_destination (Optional[Zone]): The target zone if the drone is currently in multi-turn transit.
+    """
+    def __init__(self, drone_id: int, start_zone: Zone) -> None:
+        self.drone_id: int = drone_id
+        self.current_location: Union[Zone, Connection] = start_zone
+        self.is_arrived: bool = False
+        self.path: List[Zone] = []
+        
+        # This is crucial for handling the 2-turn "restricted" zone rule
+        self.transit_destination: Optional[Zone] = None
+
+    @property
+    def name(self) -> str:
+        """Returns the formatted name required for the simulation output (e.g., 'D1')."""
+        return f"D{self.drone_id}"

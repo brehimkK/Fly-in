@@ -60,6 +60,7 @@ class MapParser:
 
         if name in self.sim_map.zones:
             self._raise_error(f"Duplicate zone name '{name}'.", line_num)
+        x = y = 0
         try:
             x, y = int(parts[2]), int(parts[3].split(" ")[0])
         except ValueError:
