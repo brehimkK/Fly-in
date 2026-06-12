@@ -1,7 +1,8 @@
 import sys
 import re
-from typing import Dict, Tuple, Optional
+from typing import Dict 
 from models import Zone, Connection, SimulationMap
+
 
 class MapParser:
     """
@@ -47,7 +48,7 @@ class MapParser:
 
         if len(parts) < 3:
             self._raise_error("Zone definition requires at least a name, X, and Y coordinate.", line_num)
-        
+
         if ":" not in parts[0]:
             self._raise_error(f"line{line_num} must contain ':'",line_num)
 
@@ -64,7 +65,8 @@ class MapParser:
         try:
             x, y = int(parts[2]), int(parts[3].split(" ")[0])
         except ValueError:
-            self._raise_error("Coordinates must be integers.", line_num)
+            self._raise_error(
+                "Invalid coordinates: both X and Y values are required and must be integers.", line_num)
 
         # Parse metadata if it exists
         metadata_str = parts[3].split(" ", 1)[1] if len(parts) > 3 else ""
@@ -112,7 +114,7 @@ class MapParser:
 
         # Validation: Ensure zones exist
         if zone1_name not in self.sim_map.zones or zone2_name not in self.sim_map.zones:
-            print(f"{zone1_name},{zone2_name.split(" ")[0]}")
+            print(f"{zone1_name},{zone2_name.split(' ')[0]}")
             self._raise_error("Connection links to an undefined zone.", line_num)
 
         # Validation: Check for duplicates
@@ -159,22 +161,22 @@ class MapParser:
                         except ValueError:
                             self._raise_error("Invalid nb_drones value.", line_num)
                             
-                    elif line.startswith('start_hub:'):
+                    elif line.startswith('start_hub'):
                         if self.has_start:
                             self._raise_error("Map cannot have more than one start_hub.", line_num)
                         self._parse_zone(line, line_num, is_start=True)
                         self.has_start = True
                         
-                    elif line.startswith('end_hub:'):
+                    elif line.startswith('end_hub'):
                         if self.has_end:
                             self._raise_error("Map cannot have more than one end_hub.", line_num)
                         self._parse_zone(line, line_num, is_end=True)
                         self.has_end = True
                         
-                    elif line.startswith('hub:'):
+                    elif line.startswith('hub'):
                         self._parse_zone(line, line_num)
                         
-                    elif line.startswith('connection:'):
+                    elif line.startswith('connection'):
                         self._parse_connection(line, line_num)
                         
                     else:

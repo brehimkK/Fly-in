@@ -1,6 +1,6 @@
 PYTHON = python3
 MAIN = simulator.py
-MAP ?= maps/easy/01_linear_path.txt
+MAP ?= maps/medium/03_priority_puzzle.txt
 
 .PHONY: install run debug clean lint lint-strict
 

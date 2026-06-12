@@ -1,4 +1,0 @@
-pygame
-webcolors
-flake8
-mypy

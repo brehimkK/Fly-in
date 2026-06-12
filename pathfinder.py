@@ -20,7 +20,7 @@ class Pathfinder:
     def _is_zone_available(self, zone: Zone, turn: int) -> bool:
         """Checks if a zone has capacity at a specific future turn."""
         if zone.is_start or zone.is_end:
-            return True  # Start and End zones have infinite capacity
+            return True
         current_occupancy = self.zone_reservations.get((zone.name, turn), 0)
         return current_occupancy < zone.max_drones
 
@@ -81,10 +81,15 @@ class Pathfinder:
             # OPTION 1: Wait in the current zone for 1 turn (if it's not the start/end, check capacity)
             if current_zone.is_start or self._is_zone_available(current_zone, turn + 1):
                 heapq.heappush(queue, (cost + 1.0, turn + 1, current_name, path + [(current_zone, turn + 1)]))
-
             # OPTION 2: Move to adjacent zones
             for conn in self.sim_map.connections:
-                neighbor = conn.zone2 if conn.zone1.name == current_name else (conn.zone1 if conn.zone2.name == current_name else None)
+
+                if conn.zone1.name == current_name:
+                    neighbor = conn.zone2
+                elif conn.zone2.name == current_name:
+                    neighbor = conn.zone1
+                else:
+                    neighbor = None
                 
                 if neighbor and neighbor.zone_type != "blocked":
                     # Calculate movement costs and turns
@@ -102,18 +107,31 @@ class Pathfinder:
                     # Validation: Does the destination have capacity when we arrive?
                     if not self._is_zone_available(neighbor, arrival_turn):
                         continue
-                        
+                    if is_restricted:
+                        if not self._is_zone_available(neighbor, turn + 1):
+                            continue
+                        if not self._is_zone_available(neighbor, turn + 2):
+                            continue
+                    if is_restricted:
+                        new_path = path + [
+                            (neighbor, turn + 1),
+                            (neighbor, turn + 2)
+                        ]
+                    else:
+                        new_path = path + [
+                            (neighbor, arrival_turn)
+                        ]
                     # Validation: If restricted, connection must also be empty during the transit turn
                     if is_restricted and not self._is_link_available(current_name, neighbor.name, turn + 1, conn.max_link_capacity):
                         continue
+
                     # If all checks pass, add to queue
-                    heapq.heappush(queue, (cost + h_cost, arrival_turn, neighbor.name, path + [(neighbor, arrival_turn)]))
+                    heapq.heappush(queue, (cost + h_cost, arrival_turn, neighbor.name, new_path))
                     
         return None # No path found (trapped)
 
     def assign_paths(self) -> None:
         """Main orchestrator: Routes drones sequentially to avoid collisions."""
-        # Optional optimization: Sort drones to prioritize certain routing logic if needed
         for drone in self.drones:
             # All drones start calculating from turn 0
             best_path = self.find_path_for_drone(start_turn=0)
@@ -125,3 +143,4 @@ class Pathfinder:
                     drone.path.pop(0)
             else:
                 print(f"Warning: Could not find a path for Drone {drone.drone_id}")
+

@@ -1,7 +1,7 @@
 import sys
 from typing import List, Dict
 from models import SimulationMap, Drone
-from parser import MapParser
+from map_parser import MapParser
 from pathfinder import Pathfinder
 
 class SimulationEngine:
@@ -31,12 +31,12 @@ class SimulationEngine:
         try:
             parser = MapParser(self.map_path)
             self.sim_map = parser.parse()
-            
+            # if no start or end zone in the map print error 
             if not self.sim_map.start_zone or not self.sim_map.end_zone:
                 print("Simulation Error: Map must contain a start_hub and an end_hub.")
                 sys.exit(1)
                 
-            # Create drones using the parsed nb_drones
+            # initializes all drones at the start zone before the simulation begins.
             self.drones = [Drone(i, self.sim_map.start_zone) for i in range(1, self.sim_map.nb_drones + 1)]
             
             # Run the Cooperative A* Algorithm
@@ -68,20 +68,39 @@ class SimulationEngine:
                 
             current_location_name = self.sim_map.start_zone.name
             
+            # NEW: Track if the drone is currently occupying a connection
+            in_transit = False 
+            
             for turn_index, zone in enumerate(drone.path):
                 if turn_index not in self.timeline:
                     self.timeline[turn_index] = []
                     
                 zone_name = zone.name if hasattr(zone, 'name') else zone
                 
-                # Rule: "Drones that do not move in a given turn are omitted from that line."
+                # Check if the target zone is marked as restricted
+                is_restricted = hasattr(zone, 'zone_type') and zone.zone_type == "restricted"
+                
+                # RULE: "Drones that do not move in a given turn are omitted from that line."
                 if zone_name != current_location_name:
                     
-                    # Rule: Format must be D<ID>-<zone>
-                    formatted_move = self._format_movement(drone.name, zone)
-                    self.timeline[turn_index].append(formatted_move)
-                    
-                    current_location_name = zone_name
+                    # RULE: Output D<ID>-<connection> for drones in flight toward restricted zones.
+                    if is_restricted and not in_transit:
+                        # 1st Turn of restricted movement: The drone is on the connection
+                        # Connections are named by combining the two zones (e.g., hub-roof1)
+                        connection_name = f"{current_location_name}-{zone_name}"
+                        
+                        # Apply terminal colors if you defined them for connections, otherwise print normal string
+                        self.timeline[turn_index].append(f"{drone.name}-{connection_name}")
+                        
+                        in_transit = True # It will arrive at the zone on the NEXT turn
+                    else:
+                        # 2nd Turn (or standard 1-turn movement): The drone arrives at the zone
+                        formatted_move = self._format_movement(drone.name, zone)
+                        self.timeline[turn_index].append(formatted_move)
+                        
+                        # Update the drone's current location and reset transit status
+                        current_location_name = zone_name
+                        in_transit = False
 
     def run(self) -> None:
         """Main execution loop that prints the final simulation output."""
