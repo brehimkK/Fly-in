@@ -10,7 +10,7 @@ install:
 
 run:
 	@echo "Running the simulation engine..."
-	$(PYTHON) $(MAIN) $(MAP)
+	@$(PYTHON) $(MAIN) $(MAP)
 
 debug:
 	@echo "Running in debug mode using pdb..."

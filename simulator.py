@@ -3,7 +3,7 @@ from typing import List, Dict
 from models import SimulationMap, Drone
 from map_parser import MapParser
 from pathfinder import Pathfinder
-
+import visualizer
 class SimulationEngine:
     """
     The central coordinator that runs the Fly-in drone routing simulation.
@@ -31,15 +31,10 @@ class SimulationEngine:
         try:
             parser = MapParser(self.map_path)
             self.sim_map = parser.parse()
-            # if no start or end zone in the map print error 
-            if not self.sim_map.start_zone or not self.sim_map.end_zone:
-                print("Simulation Error: Map must contain a start_hub and an end_hub.")
-                sys.exit(1)
-                
-            # initializes all drones at the start zone before the simulation begins.
+
+            # initializes all drones at the start
             self.drones = [Drone(i, self.sim_map.start_zone) for i in range(1, self.sim_map.nb_drones + 1)]
-            
-            # Run the Cooperative A* Algorithm
+
             pathfinder = Pathfinder(self.sim_map, self.drones)
             pathfinder.assign_paths()
             
@@ -114,6 +109,8 @@ class SimulationEngine:
                 # Rule: "A line must list all the drone movements that occur during that turn, space-separated."
                 print(" ".join(self.timeline[turn]))
                 total_turns += 1
+        gui = visualizer.PygameVisualizer(self.sim_map, self.timeline)
+        gui.play() 
                 
         # Print secondary evaluation metrics (Optional but highly recommended for peer review)
         print(f"\n--- Simulation Complete ---")
@@ -125,6 +122,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python3 simulator.py <path_to_map_file>")
         sys.exit(1)
-        
-    engine = SimulationEngine(sys.argv[1])
-    engine.run()
+    try:    
+        engine = SimulationEngine(sys.argv[1])
+        engine.run()
+    except (Exception, KeyboardInterrupt) as e:
+        print(e)

@@ -75,7 +75,8 @@ class MapParser:
 
         # Extract and validate specific metadata types
         zone_type = meta_dict.get("zone", "normal")
-        if zone_type not in ["normal", "restricted", "priority", "blocked"]:
+        if zone_type not in ["normal", "restricted", "priority",
+                            "blocked", "NORMAL", "RESTRICTED", "PRIORITY", "BLOCKED"]:
             self._raise_error(f"Invalid zone type '{zone_type}'.", line_num)
 
         color = meta_dict.get("color", None)
@@ -101,7 +102,6 @@ class MapParser:
         """Parses connection lines and prevents duplicate edges."""
         # Example line: connection: roof1-roof2 [max_link_capacity=2]
         parts = line.split(maxsplit=1)
-        prefix_and_link = parts
         
         if parts[0] != "connection:":
             self._raise_error("Invalid connection format.", line_num)
@@ -148,6 +148,7 @@ class MapParser:
             with open(self.file_path, 'r') as file:
                 for line_num, line in enumerate(file, 1):
                     line = line.strip()
+                    line = line.lower()
                     # Ignore empty lines and comments
                     if not line or line.startswith('#'):
                         continue
@@ -184,11 +185,6 @@ class MapParser:
                         
         except FileNotFoundError:
             print(f"Error: Could not find map file '{self.file_path}'")
-            sys.exit(1)
-
-        # Final Validation check
-        if not self.has_start or not self.has_end:
-            print("Error: Map is missing either a start_hub or an end_hub or file contain nothing.")
             sys.exit(1)
             
         return self.sim_map
