@@ -1,15 +1,12 @@
 import sys
-from typing import List, Dict
+from typing import List, Dict, Any
 from models import SimulationMap, Drone
 from map_parser import MapParser
 from pathfinder import Pathfinder
 import visualizer
+
+
 class SimulationEngine:
-    """
-    The central coordinator that runs the Fly-in drone routing simulation.
-    It orchestrates parsing, pathfinding, and strict turn-by-turn output formatting.
-    """
-    
     # ANSI escape codes for mandatory visual representation in the terminal
     COLORS = {
         "red": "\033[91m",
@@ -33,67 +30,63 @@ class SimulationEngine:
             self.sim_map = parser.parse()
 
             # initializes all drones at the start
-            self.drones = [Drone(i, self.sim_map.start_zone) for i in range(1, self.sim_map.nb_drones + 1)]
+            if self.sim_map.start_zone is None:
+                raise ValueError("Start zone cannot be None")
+            self.drones = [
+                Drone(i, self.sim_map.start_zone)
+                for i in range(1, self.sim_map.nb_drones + 1)
+            ]
 
             pathfinder = Pathfinder(self.sim_map, self.drones)
             pathfinder.assign_paths()
-            
+
         except Exception as e:
-            # Satisfies the rule: "Your functions should handle exceptions gracefully to avoid crashes."
             print(f"Initialization Failed: {e}")
             sys.exit(1)
 
-    def _format_movement(self, drone_name: str, zone) -> str:
-        """Helper to format the string and add required visual color representation."""
+    def _format_movement(self, drone_name: str, zone: Any) -> str:
         zone_name = zone.name if hasattr(zone, 'name') else zone
-        
+
         # Apply color if the zone metadata defined one
         if hasattr(zone, 'color') and zone.color in self.COLORS:
             color_code = self.COLORS[zone.color]
             reset_code = self.COLORS["reset"]
             return f"{color_code}{drone_name}-{zone_name}{reset_code}"
-        
+
         return f"{drone_name}-{zone_name}"
 
     def build_timeline(self) -> None:
-        """Converts the drones' planned paths into a strict turn-by-turn timeline."""
         for drone in self.drones:
             if not self.sim_map.start_zone:
                 continue
-                
             current_location_name = self.sim_map.start_zone.name
-            
+
             # NEW: Track if the drone is currently occupying a connection
-            in_transit = False 
-            
+            in_transit = False
+
             for turn_index, zone in enumerate(drone.path):
                 if turn_index not in self.timeline:
                     self.timeline[turn_index] = []
-                    
-                zone_name = zone.name if hasattr(zone, 'name') else zone
-                
+
+                zone_name = zone.name if hasattr(zone, 'name') else str(zone)
                 # Check if the target zone is marked as restricted
-                is_restricted = hasattr(zone, 'zone_type') and zone.zone_type == "restricted"
-                
-                # RULE: "Drones that do not move in a given turn are omitted from that line."
+                is_restricted = (
+                    hasattr(zone,
+                            'zone_type') and zone.zone_type == "restricted"
+                )
                 if zone_name != current_location_name:
-                    
-                    # RULE: Output D<ID>-<connection> for drones in flight toward restricted zones.
+
                     if is_restricted and not in_transit:
-                        # 1st Turn of restricted movement: The drone is on the connection
-                        # Connections are named by combining the two zones (e.g., hub-roof1)
-                        connection_name = f"{current_location_name}-{zone_name}"
-                        
-                        # Apply terminal colors if you defined them for connections, otherwise print normal string
-                        self.timeline[turn_index].append(f"{drone.name}-{connection_name}")
-                        
-                        in_transit = True # It will arrive at the zone on the NEXT turn
+                        connection_name = f"{current_location_name}"
+                        f"-{zone_name}"
+
+                        self.timeline[turn_index].append(f"{drone.name}"
+                                                         f"-{connection_name}")
+                        in_transit = True
                     else:
-                        # 2nd Turn (or standard 1-turn movement): The drone arrives at the zone
-                        formatted_move = self._format_movement(drone.name, zone)
+                        formatted_move = self._format_movement(drone.name,
+                                                               zone)
                         self.timeline[turn_index].append(formatted_move)
-                        
-                        # Update the drone's current location and reset transit status
                         current_location_name = zone_name
                         in_transit = False
 
@@ -101,28 +94,27 @@ class SimulationEngine:
         """Main execution loop that prints the final simulation output."""
         self.initialize()
         self.build_timeline()
-        
+
         total_turns = 0
-        
+
         for turn in sorted(self.timeline.keys()):
             if self.timeline[turn]:
-                # Rule: "A line must list all the drone movements that occur during that turn, space-separated."
                 print(" ".join(self.timeline[turn]))
                 total_turns += 1
         gui = visualizer.PygameVisualizer(self.sim_map, self.timeline)
-        gui.play() 
-                
-        # Print secondary evaluation metrics (Optional but highly recommended for peer review)
-        print(f"\n--- Simulation Complete ---")
+        gui.play()
+
+        print("\n--- Simulation Complete ---")
         print(f"Total Drones Delivered: {len(self.drones)}")
         print(f"Total Simulation Turns: {total_turns}")
+
 
 if __name__ == "__main__":
     # Ensure the user provides a map file when running the script
     if len(sys.argv) < 2:
         print("Usage: python3 simulator.py <path_to_map_file>")
-        sys.exit(1)
-    try:    
+        # sys.exit(1)
+    try:
         engine = SimulationEngine(sys.argv[1])
         engine.run()
     except (Exception, KeyboardInterrupt) as e:

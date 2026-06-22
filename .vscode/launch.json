@@ -1,10 +1,15 @@
 {
+    "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Python Debugger: Python File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}"
-        }
+      {
+        "name": "Debug Fly-in Simulator",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${workspaceFolder}/simulator.py",
+        "args": ["maps/easy/01_linear_path.txt"],
+        "cwd": "${workspaceFolder}",
+        "console": "integratedTerminal",
+        "justMyCode": true
+      }
     ]
-}
+  }

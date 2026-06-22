@@ -1,13 +1,14 @@
 PYTHON = python3
 MAIN = simulator.py
-MAP ?= maps/medium/03_priority_puzzle.txt
+MAP ?= maps/medium/02_circular_loop.txt
 
 .PHONY: install run debug clean lint lint-strict
 
 install:
 	@echo "Installing dependencies..."
 	python3 -m venv v
-
+	v/bin/python -m pip install --upgrade pip
+	. v/bin/activate && pip install pygame webcolors flake8 mypy
 run:
 	@echo "Running the simulation engine..."
 	@$(PYTHON) $(MAIN) $(MAP)
@@ -24,10 +25,5 @@ clean:
 
 lint:
 	@echo "Running standard linter checks..."
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
-
-lint-strict:
-	@echo "Running strict linter checks..."
-	flake8 .
-	mypy . --strict
+	flake8 . --exclude v
+	mypy . --exclude v --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
