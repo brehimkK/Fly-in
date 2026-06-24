@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 import pygame
 from models import SimulationMap
@@ -260,6 +260,17 @@ class PygameVisualizer:
             else:
                 pygame.draw.circle(self.screen, (80, 140, 230), position, 18)
 
+            dot_color = self._zone_dot_color(zone)
+
+            dot_pos = (
+                position[0] + self.zone_size // 3,
+                position[1] - self.zone_size // 3,
+            )
+
+            pygame.draw.circle(self.screen, (0, 0, 0), dot_pos, 7)
+            pygame.draw.circle(self.screen, dot_color, dot_pos, 5)
+            pygame.draw.circle(self.screen, (255, 255, 255), dot_pos, 5, 1)
+
             text = self.small_font.render(name, True, (255, 255, 255))
             rect = text.get_rect(center=(position[0], position[1] + 23))
 
@@ -298,6 +309,79 @@ class PygameVisualizer:
         tinted = image.copy()
         tinted.fill(color, special_flags=pygame.BLEND_MULT)
         return tinted
+
+    def _zone_dot_color(self, zone: Any) -> Tuple[int, int, int]:
+        colors = {
+            "red": (220, 50, 50),
+            "green": (50, 200, 80),
+            "blue": (80, 140, 230),
+            "yellow": (230, 220, 80),
+            "orange": (255, 150, 50),
+            "purple": (170, 90, 220),
+            "cyan": (80, 220, 220),
+            "pink": (255, 100, 180),
+            "gray": (120, 120, 120),
+        }
+
+        color_name = getattr(zone, "color", None)
+
+        if color_name:
+            return colors.get(color_name.lower(), (255, 255, 255))
+
+        if zone.is_start:
+            return colors["green"]
+
+        if zone.is_end:
+            return colors["red"]
+
+        zone_type = getattr(zone, "zone_type", "normal").lower()
+
+        if zone_type == "restricted":
+            return colors["orange"]
+
+        if zone_type == "priority":
+            return colors["yellow"]
+
+        if zone_type == "blocked":
+            return colors["gray"]
+
+        return colors["blue"]
+
+    def _get_zone_color(self, zone: Any) -> Tuple[int, int, int]:
+        colors = {
+            "red": (220, 50, 50),
+            "green": (50, 200, 80),
+            "blue": (80, 140, 230),
+            "yellow": (230, 220, 80),
+            "orange": (255, 150, 50),
+            "purple": (170, 90, 220),
+            "cyan": (80, 220, 220),
+            "pink": (255, 100, 180),
+            "gray": (120, 120, 120),
+
+            # Colors from the impossible map
+            "black": (0, 0, 0),
+            "brown": (139, 69, 19),
+            "maroon": (128, 0, 0),
+            "gold": (255, 215, 0),
+            "darkred": (139, 0, 0),
+            "violet": (238, 130, 238),
+            "crimson": (220, 20, 60),
+
+            # Special end zone color
+            "rainbow": (255, 255, 255),
+        }
+
+        if hasattr(zone, "color") and zone.color:
+            return colors.get(zone.color.lower(), (255, 255, 255))
+
+        if zone.is_start:
+            return (50, 200, 80)
+
+        if zone.is_end:
+            return (220, 50, 50)
+
+        return (80, 140, 230)
 
     def _draw_drones(self) -> None:
         current_positions = self._positions_at_turn(self.current_turn)
