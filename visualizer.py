@@ -57,7 +57,7 @@ class PygameVisualizer:
         self.max_turn = len(self.turns) - 1
 
         self.is_playing = True
-        self.delay_ms = 700
+        self.delay_ms = 900
         self.elapsed_ms = 0
 
         self.scale = 1.0
@@ -171,7 +171,12 @@ class PygameVisualizer:
 
         return self._world_to_screen(x, y)
 
-    def _positions_at_turn(self) -> Dict[str, Tuple[int, int]]:
+    def _smoothstep(self, value: float) -> float:
+        value = max(0.0, min(1.0, value))
+        return value * value * (3.0 - 2.0 * value)
+
+    def _positions_at_turn(
+            self, turn_index: int) -> Dict[str, Tuple[int, int]]:
         positions: Dict[str, Tuple[int, int]] = {}
 
         if self.sim_map.start_zone:
@@ -181,10 +186,10 @@ class PygameVisualizer:
             for i in range(1, self.sim_map.nb_drones + 1):
                 positions[f"D{i}"] = start_pos
 
-        if self.current_turn == 0:
+        if turn_index == 0:
             return positions
 
-        for index in range(1, self.current_turn + 1):
+        for index in range(1, turn_index + 1):
             turn = self.turns[index]
             movements = self.timeline.get(turn, [])
 
@@ -285,18 +290,56 @@ class PygameVisualizer:
         except ValueError:
             return (255, 255, 255)
 
-    def _draw_drones(self) -> None:
+    def _tint_drone(
+        self,
+        image: pygame.Surface,
+        color: Tuple[int, int, int],
+    ) -> pygame.Surface:
+        tinted = image.copy()
+        tinted.fill(color, special_flags=pygame.BLEND_MULT)
+        return tinted
 
-        positions = self._positions_at_turn()
-        for drone, position in positions.items():
+    def _draw_drones(self) -> None:
+        current_positions = self._positions_at_turn(self.current_turn)
+
+        next_turn = min(self.current_turn + 1, self.max_turn)
+        next_positions = self._positions_at_turn(next_turn)
+
+        progress = self.elapsed_ms / self.delay_ms
+        progress = self._smoothstep(progress)
+
+        drone_ids = set(current_positions.keys()) | set(next_positions.keys())
+
+        for drone in sorted(drone_ids):
+            current_pos = current_positions.get(drone)
+            next_pos = next_positions.get(drone)
+
+            if current_pos is None and next_pos is None:
+                continue
+
+            if current_pos is None:
+                current_pos = next_pos
+
+            if next_pos is None:
+                next_pos = current_pos
+
+            if current_pos is None or next_pos is None:
+                continue
+
+            x = current_pos[0] + (next_pos[0] - current_pos[0]) * progress
+            y = current_pos[1] + (next_pos[1] - current_pos[1]) * progress
+
+            position = (int(x), int(y))
+
             color = self._get_drone_color(drone)
             pygame.draw.circle(self.screen, color, position, 18)
 
             if self.drone_image:
-                rect = self.drone_image.get_rect(center=position)
-                self.screen.blit(self.drone_image, rect)
+                tinted_drone = self._tint_drone(self.drone_image, color)
+                rect = tinted_drone.get_rect(center=position)
+                self.screen.blit(tinted_drone, rect)
             else:
-                pygame.draw.circle(self.screen, (255, 80, 80), position, 10)
+                pygame.draw.circle(self.screen, color, position, 10)
 
             text = self.small_font.render(drone, True, (255, 255, 255))
             rect = text.get_rect(center=(position[0], position[1] - 23))
