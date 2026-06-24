@@ -16,10 +16,21 @@ class PygameVisualizer:
         self.sim_map = sim_map
         self.timeline = timeline
 
-        self.width = 1000
-        self.height = 700
+        self.width = 1600
+        self.height = 850
         self.ui_height = 40
         self.margin = 70
+        self.spacing_x = 1.45
+        self.spacing_y = 3
+
+        self.zoom = 1.0
+        self.min_zoom = 0.4
+        self.max_zoom = 3.0
+
+        self.camera_x = 0
+        self.camera_y = 0
+        self.dragging = False
+        self.last_mouse_pos = (0, 0)
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Fly-in Visualizer")
@@ -28,9 +39,9 @@ class PygameVisualizer:
         self.font = pygame.font.SysFont(None, 22)
         self.small_font = pygame.font.SysFont(None, 18)
 
-        self.zone_size = 36
-        self.drone_size = 32
-        self.connection_height = 10
+        self.zone_size = 26
+        self.drone_size = 28
+        self.connection_height = 5
 
         self.background = self._load_image(
             "assets/map.png", (self.width, self.height))
@@ -91,19 +102,24 @@ class PygameVisualizer:
         available_height = self.height - self.ui_height - self.margin * 2
 
         self.scale = min(
-            available_width / map_width,
-            available_height / map_height,
-            85,
+            available_width / (map_width * self.spacing_x),
+            available_height / (map_height * self.spacing_y),
+            75,
         )
 
         self.center_x = min_x + map_width / 2
         self.center_y = min_y + map_height / 2
 
     def _world_to_screen(self, x: float, y: float) -> Tuple[int, int]:
-        screen_x = self.width / 2 + (x - self.center_x) * self.scale
+        screen_x = self.width / 2
+        screen_x += (
+            x - self.center_x) * self.scale * self.spacing_x * self.zoom
+        screen_x += self.camera_x
 
         screen_y = self.ui_height + (self.height - self.ui_height) / 2
-        screen_y += (y - self.center_y) * self.scale
+        screen_y += (
+            y - self.center_y) * self.scale * self.spacing_y * self.zoom
+        screen_y += self.camera_y
 
         return int(screen_x), int(screen_y)
 
@@ -119,6 +135,17 @@ class PygameVisualizer:
 
         drone, location = movement.split("-", 1)
         return drone, location
+
+    def _short_name(self, name: str) -> str:
+        if len(name) <= 13:
+            return name
+
+        parts = name.split("_")
+
+        if len(parts) >= 2:
+            return "_".join(parts[:2])[:13]
+
+        return name[:13]
 
     def _location_position(self, location: str) -> Optional[Tuple[int, int]]:
         if location in self.sim_map.zones:
@@ -229,12 +256,12 @@ class PygameVisualizer:
                 pygame.draw.circle(self.screen, (80, 140, 230), position, 18)
 
             text = self.small_font.render(name, True, (255, 255, 255))
-            rect = text.get_rect(center=(position[0], position[1] + 30))
+            rect = text.get_rect(center=(position[0], position[1] + 23))
 
             pygame.draw.rect(
                 self.screen,
                 (0, 0, 0),
-                rect.inflate(6, 3),
+                rect.inflate(4, 2),
                 border_radius=3,
             )
 
@@ -291,8 +318,10 @@ class PygameVisualizer:
 
         status = (
             f"Turn: {turn_text} | "
-            "SPACE play/pause | "
-            "LEFT/RIGHT step | "
+            f"Zoom: {self.zoom:.1f}x | "
+            "Drag mouse move | "
+            "Scroll zoom | "
+            "R reset | "
             "Q quit"
         )
 
@@ -312,11 +341,46 @@ class PygameVisualizer:
             if event.type == pygame.QUIT:
                 return False
 
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y > 0:
+                    self.zoom *= 1.1
+                elif event.y < 0:
+                    self.zoom /= 1.1
+
+                self.zoom = max(self.min_zoom, min(self.zoom, self.max_zoom))
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.dragging = True
+                    self.last_mouse_pos = event.pos
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.dragging = False
+
+            if event.type == pygame.MOUSEMOTION:
+                if self.dragging:
+                    mouse_x, mouse_y = event.pos
+                    last_x, last_y = self.last_mouse_pos
+
+                    dx = mouse_x - last_x
+                    dy = mouse_y - last_y
+
+                    self.camera_x += dx
+                    self.camera_y += dy
+
+                    self.last_mouse_pos = event.pos
+
             if event.type != pygame.KEYDOWN:
                 continue
 
             if event.key == pygame.K_q:
                 return False
+
+            if event.key == pygame.K_r:
+                self.zoom = 1.0
+                self.camera_x = 0
+                self.camera_y = 0
 
             if event.key == pygame.K_SPACE:
                 self.is_playing = not self.is_playing

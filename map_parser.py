@@ -154,6 +154,17 @@ class MapParser:
                              "NORMAL", "RESTRICTED", "PRIORITY", "BLOCKED"}:
 
             self._raise_error(f"Invalid zone type '{zone_type}'.", line_num)
+        if is_start and zone_type.lower() == "blocked":
+            self._raise_error(
+                "start_hub cannot be blocked.",
+                line_num
+            )
+
+        if is_end and zone_type.lower() == "blocked":
+            self._raise_error(
+                "end_hub cannot be blocked.",
+                line_num
+            )
 
         color = meta_dict.get("color", None)
         max_drones = 0
