@@ -1,6 +1,6 @@
 v/
 .vscode/
 /config.txt
-/.DS_Store
+.DS_Store/
 __pycache__/
 maps/
