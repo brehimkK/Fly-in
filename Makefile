@@ -1,7 +1,6 @@
 PYTHON = python3
 MAIN = simulator.py
-MAP ?= maps/challenger/01_the_impossible_dream.txt
-
+MAP ?= config.txt
 .PHONY: install run debug clean lint lint-strict
 
 install:
