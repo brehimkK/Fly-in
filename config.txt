@@ -1,0 +1,16 @@
+# Medium Level 2: Circular loop with restricted zones
+nb_drones: 3
+
+start_hub: start 0 0 [color=green max_drones=6]
+hub: point_a 1 0 [color=orange max_drones=2]
+
+hub: side_one 2 -1 [color=orange max_drones=1]
+hub: side_two 2 1 [color=orange max_drones=1]
+
+end_hub: goal 3 0 [zone=restricted color=blue]
+
+connection: start-point_a [max_link_capacity=2]
+connection: point_a-side_one
+connection: point_a-side_two
+connection: side_one-goal
+connection: side_two-goal
