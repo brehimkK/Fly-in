@@ -25,8 +25,8 @@ class SimulationEngine:
             Drone(i, self.sim_map.start_zone)
             for i in range(1, self.sim_map.nb_drones + 1)
         ]
-
-        Pathfinder(self.sim_map, self.drones).assign_paths()
+        self.pathfinder = Pathfinder(self.sim_map, self.drones)
+        self.pathfinder.assign_paths()
 
     def build_timeline(self) -> None:
         start = self.sim_map.start_zone
@@ -72,5 +72,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python3 simulator.py <map_file>")
         sys.exit(1)
-
-    SimulationEngine(sys.argv[1]).run()
+    try:
+        SimulationEngine(sys.argv[1]).run()
+    except (Exception, KeyboardInterrupt) as e:
+        print(e)
