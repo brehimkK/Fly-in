@@ -1,6 +1,6 @@
 PYTHON = python3
 MAIN = simulator.py
-MAP ?= maps/medium/02_circular_loop.txt
+MAP ?= maps/challenger/01_the_impossible_dream.txt
 
 .PHONY: install run debug clean lint lint-strict
 
@@ -10,7 +10,7 @@ install:
 	v/bin/python -m pip install --upgrade pip
 	. v/bin/activate && pip install pygame webcolors flake8 mypy
 run:
-	@echo "Running the simulation engine..."
+	@echo "Running the simulation engine...\n"
 	@$(PYTHON) $(MAIN) $(MAP)
 
 debug:
@@ -25,5 +25,5 @@ clean:
 
 lint:
 	@echo "Running standard linter checks..."
-	flake8 . --exclude v
-	mypy . --exclude v --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	flake8 map_parser.py models.py pathfinder.py simulator.py visualizer.py
+	mypy map_parser.py models.py pathfinder.py simulator.py visualizer.py --exclude v --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs

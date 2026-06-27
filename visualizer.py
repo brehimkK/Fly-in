@@ -1,16 +1,16 @@
-#!/usr/bin/env python3
 import math
 import re
-from typing import Dict, List, Optional, Tuple, Any
-
+from typing import Any, Dict, List, Optional, Tuple
 import pygame
 from models import SimulationMap
 
 
 class PygameVisualizer:
     def __init__(
-            self, sim_map: SimulationMap, timeline: Dict[int, List[str]]
-            ) -> None:
+        self,
+        sim_map: SimulationMap,
+        timeline: Dict[int, List[str]],
+    ) -> None:
         pygame.init()
 
         self.sim_map = sim_map
@@ -44,13 +44,21 @@ class PygameVisualizer:
         self.connection_height = 5
 
         self.background = self._load_image(
-            "assets/map.png", (self.width, self.height))
+            "assets/map.png",
+            (self.width, self.height),
+        )
         self.zone_image = self._load_image(
-            "assets/zone.png", (self.zone_size, self.zone_size))
+            "assets/zone.png",
+            (self.zone_size, self.zone_size),
+        )
         self.drone_image = self._load_image(
-            "assets/drone.png", (self.drone_size, self.drone_size))
+            "assets/drone.png",
+            (self.drone_size, self.drone_size),
+        )
         self.connection_image = self._load_image(
-            "assets/connection.png", None)
+            "assets/connection.png",
+            None,
+        )
 
         self.turns = [-1] + sorted(self.timeline.keys())
         self.current_turn = 0
@@ -113,12 +121,14 @@ class PygameVisualizer:
     def _world_to_screen(self, x: float, y: float) -> Tuple[int, int]:
         screen_x = self.width / 2
         screen_x += (
-            x - self.center_x) * self.scale * self.spacing_x * self.zoom
+            x - self.center_x
+        ) * self.scale * self.spacing_x * self.zoom
         screen_x += self.camera_x
 
         screen_y = self.ui_height + (self.height - self.ui_height) / 2
         screen_y += (
-            y - self.center_y) * self.scale * self.spacing_y * self.zoom
+            y - self.center_y
+        ) * self.scale * self.spacing_y * self.zoom
         screen_y += self.camera_y
 
         return int(screen_x), int(screen_y)
@@ -176,7 +186,9 @@ class PygameVisualizer:
         return value * value * (3.0 - 2.0 * value)
 
     def _positions_at_turn(
-            self, turn_index: int) -> Dict[str, Tuple[int, int]]:
+        self,
+        turn_index: int,
+    ) -> Dict[str, Tuple[int, int]]:
         positions: Dict[str, Tuple[int, int]] = {}
 
         if self.sim_map.start_zone:

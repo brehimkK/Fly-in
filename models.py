@@ -1,10 +1,18 @@
-from typing import Optional, Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 
 class Zone:
-    def __init__(self, name: str, x: int, y: int, zone_type: str = "normal",
-                 color: Optional[str] = None, max_drones: int = 1,
-                 is_start: bool = False, is_end: bool = False) -> None:
+    def __init__(
+        self,
+        name: str,
+        x: int,
+        y: int,
+        zone_type: str = "normal",
+        color: Optional[str] = None,
+        max_drones: int = 1,
+        is_start: bool = False,
+        is_end: bool = False,
+    ) -> None:
         self.name: str = name
         self.x: int = x
         self.y: int = y
@@ -19,8 +27,12 @@ class Zone:
 
 
 class Connection:
-    def __init__(self, zone1: Zone, zone2: Zone,
-                 max_link_capacity: int = 1) -> None:
+    def __init__(
+        self,
+        zone1: Zone,
+        zone2: Zone,
+        max_link_capacity: int = 1,
+    ) -> None:
         self.zone1: Zone = zone1
         self.zone2: Zone = zone2
         self.max_link_capacity: int = max_link_capacity
