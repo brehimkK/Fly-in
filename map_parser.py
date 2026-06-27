@@ -333,8 +333,11 @@ class MapParser:
                                     line_num,
                                 )
                             if self.sim_map.nb_drones:
-                                self._raise_error("map must contain "
-                                                  "one 'nb_drones'", line_num)
+                                self._raise_error(
+                                    "map must contain "
+                                    "one 'nb_drones'",
+                                    line_num,
+                                )
                                 exit(1)
                             self.sim_map.nb_drones = nb
                         except ValueError:
