@@ -41,6 +41,7 @@ class MapParser:
             "restricted",
             "priority",
             "blocked",
+            "normal",
         }
 
         # Remove [ and ]
@@ -62,8 +63,8 @@ class MapParser:
                 )
 
             key, value = pair.split("=", 1)
-            key = key.lower()
-            value = value.lower()
+            key = key.lower().lstrip()
+            value = value.lower().lstrip()
 
             if not key or not value:
                 self._raise_error(
@@ -117,35 +118,41 @@ class MapParser:
         is_end: bool = False,
     ) -> None:
         """Parses start_hub, end_hub, and regular hub lines."""
-        # Example line: hub: roof1 3 4 [zone=restricted color=red]
-        parts = line.split(maxsplit=3)
 
-        if len(parts) < 3:
+        if line.count(":") != 1:
             self._raise_error(
-                "Zone definition requires at"
-                " least a name, X, and Y coordinate.",
+                f"Line {line_num} must contain exactly one ':'.",
                 line_num,
             )
 
-        if ":" not in parts[0]:
-            self._raise_error(f"line{line_num} must ""contain ':'", line_num)
+        zone_prefix, zone_data = line.split(":", 1)
+        zone_prefix = zone_prefix.strip()
+        zone_data = zone_data.strip()
 
-        # Remove the 'start_hub:', 'end_hub:', or 'hub:' prefix
-        name = parts[1]
+        parts = zone_data.split(maxsplit=3)
 
-        # Validation: Names cannot contain dashes or spaces
+        if len(parts) < 3:
+            self._raise_error(
+                "Zone definition requires at least a"
+                " name, X, and Y coordinate.",
+                line_num,
+            )
+
+        name = parts[0]
+
         if "-" in name or " " in name:
             self._raise_error(
-                f"Zone name '{name}' "
-                "cannot contain dashes or spaces.",
+                f"Zone name '{name}' cannot contain dashes or spaces.",
                 line_num,
             )
 
         if name in self.sim_map.zones:
             self._raise_error(f"Duplicate zone name '{name}'.", line_num)
-        x = y = 0
+
         try:
-            x, y = int(parts[2]), int(parts[3].split(" ")[0])
+            x = int(parts[1])
+            y = int(parts[2])
+
             for existing_zone in self.sim_map.zones.values():
                 if existing_zone.x == x and existing_zone.y == y:
                     self._raise_error(
@@ -153,18 +160,20 @@ class MapParser:
                         f"coordinates as zone '{existing_zone.name}'.",
                         line_num,
                     )
+
         except ValueError:
             self._raise_error(
-                "Invalid coordinates: both X and Y values"
-                " are required and must be integers.",
+                "Invalid coordinates: both X and Y values are required "
+                "and must be integers.",
                 line_num,
             )
 
-        # Parse metadata if it exists
-        metadata_str = parts[3].split(" ", 1)[1] if len(parts) > 3 else ""
+        metadata_str = parts[3] if len(parts) > 3 else ""
         meta_dict = self._parse_metadata(metadata_str, line_num)
 
         zone_type = meta_dict.get("zone", "normal")
+        color = meta_dict.get("color", "white")
+
         if zone_type not in {
             "normal",
             "restricted",
@@ -176,6 +185,7 @@ class MapParser:
             "BLOCKED",
         }:
             self._raise_error(f"Invalid zone type '{zone_type}'.", line_num)
+
         if is_start and zone_type.lower() == "blocked":
             self._raise_error(
                 "start_hub cannot be blocked.",
@@ -188,8 +198,6 @@ class MapParser:
                 line_num,
             )
 
-        color = meta_dict.get("color", None)
-        max_drones = 0
         try:
             max_drones = int(meta_dict.get("max_drones", 1))
             if max_drones <= 0:
@@ -200,7 +208,6 @@ class MapParser:
         except ValueError:
             self._raise_error("max_drones must be an integer.", line_num)
 
-        # Create the Zone object
         zone = Zone(
             name=name,
             x=x,
@@ -213,8 +220,10 @@ class MapParser:
         )
 
         self.sim_map.zones[name] = zone
+
         if is_start:
             self.sim_map.start_zone = zone
+
         if is_end:
             self.sim_map.end_zone = zone
 
@@ -302,6 +311,43 @@ class MapParser:
         )
         self.sim_map.connections.append(connection)
 
+    def _validate_optional_metadata_block(
+        self,
+        line: str,
+        line_num: int,
+        example: str,
+    ) -> None:
+        """Validate metadata only if the line contains metadata."""
+        open_count = line.count("[")
+        close_count = line.count("]")
+
+        # Metadata is optional, so no [ ] is valid.
+        if open_count == 0 and close_count == 0:
+            return
+
+        # If one bracket exists, both must exist exactly once.
+        if open_count != 1 or close_count != 1:
+            self._raise_error(
+                "Invalid zone format: metadata must be complete inside [ ]. "
+                f"Example: {example}",
+                line_num,
+            )
+
+        open_index = line.index("[")
+        close_index = line.index("]")
+
+        if open_index > close_index:
+            self._raise_error(
+                "Invalid zone format: '[' must come before ']'.",
+                line_num,
+            )
+
+        if line[close_index + 1:].strip():
+            self._raise_error(
+                "Invalid zone format: nothing is allowed after ']'.",
+                line_num,
+            )
+
     def parse(self) -> SimulationMap:
         first_info_found = False
 
@@ -309,8 +355,7 @@ class MapParser:
             with open(self.file_path, "r") as file:
                 for line_num, line in enumerate(file, 1):
                     line = line.split("#", 1)[0].strip()
-                    if not line.lower().startswith("hub:"):
-                        line = line.lower()
+                    line_type = line.split(":", 1)[0].strip().lower()
 
                     if not line:
                         continue
@@ -324,7 +369,7 @@ class MapParser:
                             )
                         first_info_found = True
 
-                    if line.startswith("nb_drones:"):
+                    if line_type == "nb_drones":
                         try:
                             nb = int(line.split(":")[1].strip())
                             if nb <= 0:
@@ -346,15 +391,12 @@ class MapParser:
                                 line_num,
                             )
 
-                    elif line.startswith("start_hub"):
-                        if line.count("[") != 1 or line.count("]") != 1:
-                            self._raise_error(
-                                "Invalid zone format: "
-                                "options must be inside [ ]. "
-                                "Example: start_hub: start"
-                                " 0 0 [color=green max_drones=5]",
-                                line_num,
-                            )
+                    elif line_type == "start_hub":
+                        self._validate_optional_metadata_block(
+                            line,
+                            line_num,
+                            "start_hub: start 0 0 [color=green max_drones=5]",
+                        )
 
                         if self.has_start:
                             self._raise_error(
@@ -365,15 +407,12 @@ class MapParser:
                         self._parse_zone(line, line_num, is_start=True)
                         self.has_start = True
 
-                    elif line.startswith("end_hub"):
-                        if line.count("[") != 1 or line.count("]") != 1:
-                            self._raise_error(
-                                "Invalid zone format: "
-                                "options must be inside [ ]. "
-                                "Example: end_hub: goal"
-                                " 4 0 [color=green max_drones=5]",
-                                line_num,
-                            )
+                    elif line_type == "end_hub":
+                        self._validate_optional_metadata_block(
+                            line,
+                            line_num,
+                            "end_hub: goal 4 0 [color=green max_drones=5]",
+                        )
 
                         if self.has_end:
                             self._raise_error(
@@ -384,19 +423,16 @@ class MapParser:
                         self._parse_zone(line, line_num, is_end=True)
                         self.has_end = True
 
-                    elif line.lower().startswith("hub"):
-                        if line.count("[") != 1 or line.count("]") != 1:
-                            self._raise_error(
-                                "Invalid zone format: options"
-                                " must be inside [ ]. "
-                                "Example: hub: loop_a 1 0"
-                                "[color=orange max_drones=2]",
-                                line_num,
-                            )
+                    elif line_type == "hub":
+                        self._validate_optional_metadata_block(
+                            line,
+                            line_num,
+                            "hub: loop_a 1 0 [color=orange max_drones=2]",
+                        )
 
                         self._parse_zone(line, line_num)
 
-                    elif line.startswith("connection"):
+                    elif line_type == "connection":
                         self._parse_connection(line, line_num)
 
                     else:
