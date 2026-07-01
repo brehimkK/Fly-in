@@ -230,7 +230,10 @@ class MapParser:
     def _parse_connection(self, line: str, line_num: int) -> None:
         """Parses connection lines and prevents duplicate edges."""
         # Example line: connection: roof1-roof2 [max_link_capacity=2]
-        parts = line.split(maxsplit=1)
+        parts = line.split(":", 1)
+
+        if len(parts) != 2:
+            self._raise_error("Invalid connection format.", line_num)
 
         if not self.has_start:
             print("No start zone provided")
@@ -240,18 +243,22 @@ class MapParser:
             print("No end zone provided", line_num - 2)
             exit(1)
 
-        if parts[0] != "connection:":
+        link_type = parts[0].strip()
+        if link_type != "connection":
             self._raise_error("Invalid connection format.", line_num)
 
-        if "-" not in parts[1]:
+        connection_data = parts[1].strip()
+
+        if "-" not in connection_data:
             self._raise_error(
-                "Connection must link two zones"
-                " separated by a dash (e.g., a-b).",
+                "Connection must link two "
+                "zones separated by a dash (e.g., a-b).",
                 line_num,
             )
 
-        zone1_name, zone2_name = parts[1].split("-", 1)
-        zone2_name = zone2_name.split(" ")[0]
+        zone1_name, zone2_name = connection_data.split("-", 1)
+        zone1_name = zone1_name.strip()
+        zone2_name = zone2_name.split(" ")[0].strip()
 
         # Validation: Ensure zones exist
         if (
@@ -284,9 +291,11 @@ class MapParser:
 
         # Parse connection metadata
         metadata_str = ""
-        if len(parts) >= 2 and " " in parts[-1]:
-            metadata_str = parts[-1].split(" ", 1)[1]
+        if len(parts) >= 2 and " " in connection_data:
+            metadata_str = connection_data.split(" ", 1)[1]
+
         meta_dict = self._parse_metadata(metadata_str, line_num)
+
         max_capacity = 0
         try:
             max_capacity = int(meta_dict.get("max_link_capacity", 1))
