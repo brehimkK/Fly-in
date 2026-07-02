@@ -65,7 +65,7 @@ class SimulationEngine:
             if self.timeline[turn]:
                 print(" ".join(self.timeline[turn]))
 
-        visualizer.PygameVisualizer(self.sim_map, self.timeline).play()
+        # visualizer.PygameVisualizer(self.sim_map, self.timeline).play()
 
 
 if __name__ == "__main__":

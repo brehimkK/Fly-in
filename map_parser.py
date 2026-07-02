@@ -119,12 +119,6 @@ class MapParser:
     ) -> None:
         """Parses start_hub, end_hub, and regular hub lines."""
 
-        if line.count(":") != 1:
-            self._raise_error(
-                f"Line {line_num} must contain exactly one ':'.",
-                line_num,
-            )
-
         zone_prefix, zone_data = line.split(":", 1)
         zone_prefix = zone_prefix.strip()
         zone_data = zone_data.strip()
