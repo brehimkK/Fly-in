@@ -562,7 +562,3 @@ class PygameVisualizer:
             self._draw()
 
         pygame.quit()
-
-
-if __name__ == "__main__":
-    print("Use this visualizer from simulator.py")

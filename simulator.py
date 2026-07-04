@@ -70,7 +70,7 @@ class SimulationEngine:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 simulator.py <map_file>")
+        print("Usage: python3 simulator.py <map_file_path>")
         sys.exit(1)
     try:
         SimulationEngine(sys.argv[1]).run()

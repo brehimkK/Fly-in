@@ -331,7 +331,7 @@ class MapParser:
         # If one bracket exists, both must exist exactly once.
         if open_count != 1 or close_count != 1:
             self._raise_error(
-                "Invalid zone format: metadata must be complete inside [ ]. "
+                "Invalid zone format: metadata must be like this "
                 f"Example: {example}",
                 line_num,
             )
